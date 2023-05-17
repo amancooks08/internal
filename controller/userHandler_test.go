@@ -140,12 +140,13 @@ func (suite *UserHandlerTestSuite) TestLoginUserHandler() {
 	t := suite.T()
 	t.Run("Login Valid User", func(t *testing.T) {
 		// Arrange
-		reqBody := `{email: "john1@mail.com", password: "12345678"}`
+		reqBody := `{"email": "john1@gmail.com", "password": "12345678"}`
 		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(reqBody))
 		res := httptest.NewRecorder()
 
 		expectedResponse := domain.LoginUserResponse{
 			Message: "User Logged In Successfully",
+			Token:  "token",
 		}
 		exp, err := json.Marshal(expectedResponse)
 		if err != nil {
@@ -171,12 +172,12 @@ func (suite *UserHandlerTestSuite) TestLoginUserHandler() {
 
 	t.Run("Login User with Invalid Email", func(t *testing.T) {
 		//Arrange
-		reqBody := `{email: "john1mail.com", password: "12345678"}`
+		reqBody := `{"email": "john1mail.com", "password": "12345678"}`
 		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(reqBody))
 		res := httptest.NewRecorder()
 
 		expectedResponse := domain.LoginUserResponse{
-			Message: "Invalid Email",
+			Message: "invalid email",
 		}
 		exp, err := json.Marshal(expectedResponse)
 		if err != nil {

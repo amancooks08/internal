@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"nickPay/wallet/internal/domain"
 	service "nickPay/wallet/internal/service"
@@ -51,6 +52,7 @@ func LoginUser(NikPay service.WalletService) http.HandlerFunc {
 		var loginRequest domain.LoginUserRequest
 		err := json.NewDecoder(r.Body).Decode(&loginRequest)
 		if err != nil {
+			fmt.Println(err)
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -59,6 +61,7 @@ func LoginUser(NikPay service.WalletService) http.HandlerFunc {
 		if err != nil {
 			message := domain.LoginUserResponse{
 				Message: err.Error(),
+				Token:   "",
 			}
 			rw.WriteHeader(http.StatusBadRequest)
 			resp, err := json.Marshal(message)
@@ -73,14 +76,13 @@ func LoginUser(NikPay service.WalletService) http.HandlerFunc {
 		}
 		message := domain.LoginUserResponse{
 			Message: "User Logged In Successfully",
-			Token: token,
+			Token:   token,
 		}
 		resp, err := json.Marshal(message)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
-		rw.WriteHeader(http.StatusCreated)
 		rw.Header().Set("Content-Type", "application/json")
 		rw.Write(resp)
 	})
