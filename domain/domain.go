@@ -18,6 +18,7 @@ type LoginUserRequest struct {
 
 type LoginUserResponse struct {
 	Message string `json:"message"`
+	Token 	string `json:"token"`
 }
 type User struct {
 	ID          int64  `db:"id" json:"id"`
@@ -25,4 +26,9 @@ type User struct {
 	Name        string `db:"name" json:"name"`
 	PhoneNumber string `db:"number" json:"phone_number"`
 	Password    string `db:"password" json:"password"` // Don't return password
+}
+
+type LoginDbResponse struct {
+	ID  	  int64  `db:"id" json:"id"`
+	Password	string `db:"password" json:"-"`
 }

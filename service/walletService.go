@@ -4,10 +4,15 @@ import (
 	"context"
 	"nickPay/wallet/internal/db"
 	"nickPay/wallet/internal/domain"
+	"errors"
+	errorrs "nickPay/wallet/internal/errors"
+	logger "github.com/sirupsen/logrus" 
+	"golang.org/x/crypto/bcrypt"
 )
 
 type WalletService interface {
 	RegisterUser(context.Context, domain.User) error
+	LoginUser(context.Context, domain.LoginUserRequest) (string, error)
 }
 
 type walletService struct {
@@ -35,4 +40,22 @@ func (w *walletService) RegisterUser(ctx context.Context, user domain.User) (err
 		return
 	}
 	return
+}
+
+func (w *walletService) LoginUser(ctx context.Context, loginRequest domain.LoginUserRequest) (token string, err error) {
+	loginResponse, err := w.store.LoginUser(ctx, loginRequest.Email)
+	if bcrypt.CompareHashAndPassword([]byte(loginResponse.Password), []byte(loginRequest.Password)) != nil {
+		return "", errorrs.ErrInvalidPassword
+	}
+
+	if err != nil {
+		logger.WithField("err", err).Error("Error while logging in user")
+		return "", err
+	}
+	token, err = GenerateToken(loginResponse)
+	if err != nil {
+		logger.WithField("err", err.Error()).Error("error generating jwt token for given userId")
+		return "", errors.New("error generating jwt token for given userId")
+	}
+	return token, nil
 }

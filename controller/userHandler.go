@@ -18,7 +18,7 @@ func RegisterUser(NikPay service.WalletService) http.HandlerFunc {
 		err = NikPay.RegisterUser(r.Context(), user)
 
 		if err != nil {
-			message := service.RegisterUserResponse{
+			message := domain.RegisterUserResponse{
 				Message: err.Error(),
 			}
 			rw.WriteHeader(http.StatusBadRequest)
@@ -32,8 +32,48 @@ func RegisterUser(NikPay service.WalletService) http.HandlerFunc {
 			rw.Write(resp)
 			return
 		}
-		message := service.RegisterUserResponse{
+		message := domain.RegisterUserResponse{
 			Message: "User Registered Successfully",
+		}
+		resp, err := json.Marshal(message)
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+		rw.WriteHeader(http.StatusCreated)
+		rw.Header().Set("Content-Type", "application/json")
+		rw.Write(resp)
+	})
+}
+
+func LoginUser(NikPay service.WalletService) http.HandlerFunc {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		var loginRequest domain.LoginUserRequest
+		err := json.NewDecoder(r.Body).Decode(&loginRequest)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		token, err := NikPay.LoginUser(r.Context(), loginRequest)
+
+		if err != nil {
+			message := domain.LoginUserResponse{
+				Message: err.Error(),
+			}
+			rw.WriteHeader(http.StatusBadRequest)
+			resp, err := json.Marshal(message)
+			if err != nil {
+				rw.WriteHeader(http.StatusInternalServerError)
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+			}
+			rw.WriteHeader(http.StatusBadRequest)
+			rw.Header().Set("Content-Type", "application/json")
+			rw.Write(resp)
+			return
+		}
+		message := domain.LoginUserResponse{
+			Message: "User Logged In Successfully",
+			Token: token,
 		}
 		resp, err := json.Marshal(message)
 		if err != nil {

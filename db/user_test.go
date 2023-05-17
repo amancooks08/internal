@@ -114,3 +114,67 @@ func (suite *StoreTestSuite) Test_pgStore_RegisterUser() {
 		})
 	}
 }
+
+func (suite *StoreTestSuite) Test_pgStore_LoginUser() {
+	t := suite.T()
+	type args struct {
+		ctx  context.Context
+		email string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    domain.LoginDbResponse
+		wantErr bool
+	}{
+		{
+			name: "Login Valid User",
+			args: args{
+				ctx: context.Background(),
+				email: "john1@gmail.com",
+			},
+			want: domain.LoginDbResponse{
+				ID:          1,
+				Password:   "12345678",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Login Invalid User",
+			args: args{
+				ctx: context.Background(),
+				email: "john2@mail.com",
+			},
+			want: domain.LoginDbResponse{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var err error
+
+			if tt.wantErr {
+				err = errors.New("mocked error")
+			} else {
+				err = nil
+			}
+
+			rows := sqlxmock.NewRows([]string{"id", "password"}).AddRow(1, "12345678")
+
+			suite.mock.ExpectQuery(`SELECT id, password FROM "user"`).WithArgs(tt.args.email).WillReturnError(err).WillReturnRows(rows)
+
+			got, err := suite.repo.LoginUser(tt.args.ctx, tt.args.email)
+			if (err != nil) == tt.wantErr {
+				if tt.wantErr {
+					require.EqualError(t, err, "mocked error")
+				} else {
+					require.NoError(t, err)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, tt.want, got)
+		})
+	}
+}

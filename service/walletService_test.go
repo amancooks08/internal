@@ -2,12 +2,10 @@ package service
 
 import (
 	"context"
-	"errors"
 	"nickPay/wallet/internal/db/mocks"
 	"nickPay/wallet/internal/domain"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -57,7 +55,6 @@ func (suite *ServiceTestSuite) TestWalletService_RegisterUser() {
 			},
 			wantErr: false,
 			prepare: func(args args, mock *mocks.Storer) {
-
 				mock.On("RegisterUser", args.ctx, args.user).Return(nil).Once()
 			},
 		},
@@ -74,7 +71,7 @@ func (suite *ServiceTestSuite) TestWalletService_RegisterUser() {
 			},
 			wantErr: true,
 			prepare: func(args args, s *mocks.Storer) {
-				s.On("RegisterUser", args.ctx, mock.Anything).Return(errors.New("mocked error")).Once()
+				s.On("RegisterUser", args.ctx, args.user).Return(nil).Once()
 			},
 		},
 		{
@@ -90,7 +87,7 @@ func (suite *ServiceTestSuite) TestWalletService_RegisterUser() {
 			},
 			wantErr: true,
 			prepare: func(args args, s *mocks.Storer) {
-				s.On("RegisterUser", args.ctx, mock.Anything).Return(errors.New("mocked error")).Once()
+				s.On("RegisterUser", args.ctx, args.user).Return(nil).Once()
 			},
 		},
 	}
@@ -99,6 +96,63 @@ func (suite *ServiceTestSuite) TestWalletService_RegisterUser() {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.prepare(tt.args, suite.repository)
 			err := suite.service.RegisterUser(tt.args.ctx, tt.args.user)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+
+func (suite *ServiceTestSuite) TestWalletService_LoginUser() {
+	t := suite.T()
+	type args struct {
+		ctx  context.Context
+		loginRequest domain.LoginUserRequest
+	}
+	type test struct {
+		name    string
+		args    args
+		wantErr bool
+		prepare func(args, *mocks.Storer)
+	}
+	tests := []test{
+		{
+			name: "Login Valid User",
+			args: args{
+				ctx: context.Background(),
+				loginRequest: domain.LoginUserRequest{
+					Email:       "john1@mail.com",
+					Password:    "12345678",
+				},
+			},
+			wantErr: false,
+			prepare: func(args args, mock *mocks.Storer) {
+				mock.On("LoginUser", args.ctx, args.loginRequest).Return(nil).Once()
+			},
+		},
+		{
+			name: "Login User with Invalid Email",
+			args: args{
+				ctx: context.Background(),
+				loginRequest: domain.LoginUserRequest{
+					Email:       "john1mail.com",
+					Password:    "12345678",
+				},
+			},
+			wantErr: true,
+			prepare: func(args args, s *mocks.Storer) {
+				s.On("LoginUser", args.ctx, args.loginRequest).Return(nil).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.prepare(tt.args, suite.repository)
+			_, err := suite.service.LoginUser(tt.args.ctx, tt.args.loginRequest)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

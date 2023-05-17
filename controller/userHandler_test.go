@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"nickPay/wallet/internal/domain"
-	service "nickPay/wallet/internal/service"
 	"nickPay/wallet/server"
 	"strings"
 
@@ -42,7 +41,7 @@ func (suite *UserHandlerTestSuite) TestRegisterUserHandler() {
 		req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(reqBody))
 		res := httptest.NewRecorder()
 
-		expectedResponse := service.RegisterUserResponse{
+		expectedResponse := domain.RegisterUserResponse{
 			Message: "User Registered Successfully",
 		}
 		exp, err := json.Marshal(expectedResponse)
@@ -76,7 +75,7 @@ func (suite *UserHandlerTestSuite) TestRegisterUserHandler() {
 		req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBufferString(reqBody))
 		res := httptest.NewRecorder()
 
-		expectedResponse := service.RegisterUserResponse{
+		expectedResponse := domain.RegisterUserResponse{
 			Message: "invalid email",
 		}
 		exp, err := json.Marshal(expectedResponse)
@@ -109,7 +108,7 @@ func (suite *UserHandlerTestSuite) TestRegisterUserHandler() {
 		req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBufferString(reqBody))
 		res := httptest.NewRecorder()
 
-		expectedResponse := service.RegisterUserResponse{
+		expectedResponse := domain.RegisterUserResponse{
 			Message: "invalid phone number",
 		}
 		exp, err := json.Marshal(expectedResponse)
@@ -137,70 +136,68 @@ func (suite *UserHandlerTestSuite) TestRegisterUserHandler() {
 	})
 }
 
-// func (suite *UserHandlerTestSuite) TestLoginUserHandler() {
-// 	t := suite.T()
-// 	t.Run("Login Valid User", func(t *testing.T) {
-// 		// Arrange
-// 		reqBody := `{email: "john1@mail.com", password: "12345678"}`
-// 		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(reqBody))
-// 		res := httptest.NewRecorder()
+func (suite *UserHandlerTestSuite) TestLoginUserHandler() {
+	t := suite.T()
+	t.Run("Login Valid User", func(t *testing.T) {
+		// Arrange
+		reqBody := `{email: "john1@mail.com", password: "12345678"}`
+		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(reqBody))
+		res := httptest.NewRecorder()
 
-// 		expectedResponse := service.LoginUserResponse{
-// 			Message: "User Logged In Successfully",
-// 		}
-// 		exp, err := json.Marshal(expectedResponse)
-// 		if err != nil {
-// 			t.Errorf("Error while marshalling expected response: %v", err)
-// 		}
+		expectedResponse := domain.LoginUserResponse{
+			Message: "User Logged In Successfully",
+		}
+		exp, err := json.Marshal(expectedResponse)
+		if err != nil {
+			t.Errorf("Error while marshalling expected response: %v", err)
+		}
 
-// 		loginRequest := service.LoginUserRequest{
-// 			Email:    "john1@gmail.com",
-// 			Password: "12345678",
-// 		}
+		loginRequest := domain.LoginUserRequest{
+			Email:    "john1@gmail.com",
+			Password: "12345678",
+		}
 
-// 		// Act
-// 		err = suite.service.LoginUser(req.Context(), loginRequest)
-// 		fmt.Println(err)
-// 		deps := server.Dependencies{
-// 			NikPay: suite.service,
-// 		}
-// 		// Assert
-// 		got := LoginUser(deps.NikPay)
-// 		got.ServeHTTP(res, req)
-// 		assert.Equal(t, http.StatusOK, res.Code)
-// 		assert.Equal(t, string(exp), res.Body.String())
-// 	})
+		// Act
+		suite.service.On("LoginUser", req.Context(), loginRequest).Return("token", nil).Once()
+		deps := server.Dependencies{
+			NikPay: suite.service,
+		}
+		// Assert
+		got := LoginUser(deps.NikPay)
+		got.ServeHTTP(res, req)
+		assert.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, string(exp), res.Body.String())
+	})
 
-// 	t.Run("Login User with Invalid Email", func(t *testing.T) {
-// 		//Arrange
-// 		reqBody := `{email: "john1mail.com", password: "12345678"}`
-// 		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(reqBody))
-// 		res := httptest.NewRecorder()
+	t.Run("Login User with Invalid Email", func(t *testing.T) {
+		//Arrange
+		reqBody := `{email: "john1mail.com", password: "12345678"}`
+		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBufferString(reqBody))
+		res := httptest.NewRecorder()
 
-// 		expectedResponse := service.LoginUserResponse{
-// 			Message: "Invalid Email",
-// 		}
-// 		exp, err := json.Marshal(expectedResponse)
-// 		if err != nil {
-// 			t.Errorf("Error while marshalling expected response: %v", err)
-// 		}
+		expectedResponse := domain.LoginUserResponse{
+			Message: "Invalid Email",
+		}
+		exp, err := json.Marshal(expectedResponse)
+		if err != nil {
+			t.Errorf("Error while marshalling expected response: %v", err)
+		}
 
-// 		loginRequest := service.LoginUserRequest{
-// 			Email:    "john1mail.com",
-// 			Password: "12345678",
-// 		}
+		loginRequest := domain.LoginUserRequest{
+			Email:    "john1mail.com",
+			Password: "12345678",
+		}
 
-// 		// Act
-// 		err = suite.service.LoginUser(req.Context(), loginRequest)
-// 		fmt.Println(err)
-// 		deps := server.Dependencies{
-// 			NikPay: suite.service,
-// 		}
+		// Act
+		suite.service.On("LoginUser", req.Context(), loginRequest).Return("", errors.ErrInvalidEmail).Once()
+		deps := server.Dependencies{
+			NikPay: suite.service,
+		}
 
-// 		// Assert
-// 		got := LoginUser(deps.NikPay)
-// 		got.ServeHTTP(res, req)
-// 		assert.Equal(t, http.StatusBadRequest, res.Code)
-// 		assert.Equal(t, string(exp), res.Body.String())
-// 	})
-// }
+		// Assert
+		got := LoginUser(deps.NikPay)
+		got.ServeHTTP(res, req)
+		assert.Equal(t, http.StatusBadRequest, res.Code)
+		assert.Equal(t, string(exp), res.Body.String())
+	})
+}

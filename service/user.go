@@ -8,13 +8,6 @@ import (
 	bcrypt "golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-	Email       string `json:"email"`
-	Name        string `json:"name"`
-	PhoneNumber string `json:"phone_number"`
-	Password    string `json:"password"`
-}
-
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
