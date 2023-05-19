@@ -11,5 +11,6 @@ func InitRouter(deps *server.Dependencies) (router *mux.Router) {
 
 	router.HandleFunc("/register", RegisterUser(deps.NikPay)).Methods("POST")
 	router.HandleFunc("/login", LoginUser(deps.NikPay)).Methods("POST")
+	router.HandleFunc("/wallet", authMiddleware(GetWallet(deps.NikPay))).Methods("GET")
 	return
 }

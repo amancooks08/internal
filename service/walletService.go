@@ -2,17 +2,20 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"nickPay/wallet/internal/db"
 	"nickPay/wallet/internal/domain"
-	"errors"
 	errorrs "nickPay/wallet/internal/errors"
-	logger "github.com/sirupsen/logrus" 
+
+	logger "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type WalletService interface {
 	RegisterUser(context.Context, domain.User) error
 	LoginUser(context.Context, domain.LoginUserRequest) (string, error)
+	GetWallet(context.Context, int) (domain.Wallet, error)
 }
 
 type walletService struct {
@@ -33,6 +36,7 @@ func (w *walletService) RegisterUser(ctx context.Context, user domain.User) (err
 	}
 	err = Validate(user)
 	if err == nil {
+		user.Password = HashPassword(user.Password)
 		err = w.store.RegisterUser(ctx, user)
 		if err != nil {
 			return
@@ -58,4 +62,16 @@ func (w *walletService) LoginUser(ctx context.Context, loginRequest domain.Login
 		return "", errors.New("error generating jwt token for given userId")
 	}
 	return token, nil
+}
+
+func (w *walletService) GetWallet(ctx context.Context, userID int) (wallet domain.Wallet, err error) {
+	wallet, err = w.store.GetWallet(ctx, userID)
+	defer (func() {
+		fmt.Println("defer")
+	})()
+	if err != nil {
+		logger.WithField("err", err.Error()).Error("error getting wallet for given userId")
+		return domain.Wallet{}, errors.New("error getting wallet for given userId")
+	}
+	return wallet, nil
 }
