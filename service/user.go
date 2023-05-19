@@ -1,22 +1,26 @@
 package service
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"nickPay/wallet/internal/domain"
 	errors "nickPay/wallet/internal/errors"
 	"regexp"
-
-	bcrypt "golang.org/x/crypto/bcrypt"
 )
 
-func HashPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	if err != nil {
-		return "", err
-	}
-	return string(hash), nil
+func HashPassword(password string) string {
+	
+	hash := sha256.New()
+
+	hash.Write([]byte(password))
+
+	hashBytes := hash.Sum(nil)
+
+	hashString := hex.EncodeToString(hashBytes)
+	return hashString
 }
 
-func Validate(user domain.User) (error) {
+func Validate(user domain.User) error {
 	if !ValidateEmail(user.Email) {
 		return errors.ErrInvalidEmail
 	}
@@ -32,12 +36,12 @@ func Validate(user domain.User) (error) {
 	return nil
 }
 
-func ValidateEmail(email string) (bool) {
+func ValidateEmail(email string) bool {
 	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	return re.MatchString(email) 
+	return re.MatchString(email)
 }
 
-func ValidatePhoneNumber(phoneNumber string) (bool) {
+func ValidatePhoneNumber(phoneNumber string) bool {
 	re := regexp.MustCompile(`^[0-9]{10}$`)
-	return re.MatchString(phoneNumber) 
+	return re.MatchString(phoneNumber)
 }

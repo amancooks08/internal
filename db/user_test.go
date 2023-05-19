@@ -18,7 +18,7 @@ type StoreTestSuite struct {
 	mock sqlxmock.Sqlmock
 }
 
-func TestStoreTestSuite(t *testing.T) {
+func TestUserStoreTestSuite(t *testing.T) {
 	suite.Run(t, new(StoreTestSuite))
 }
 

@@ -10,6 +10,10 @@ import (
 
 func RegisterUser(NikPay service.WalletService) http.HandlerFunc {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			rw.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
 		var user domain.User
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {

@@ -32,3 +32,28 @@ type LoginDbResponse struct {
 	ID  	  int64  `db:"id" json:"id"`
 	Password	string `db:"password" json:"-"`
 }
+
+type Wallet struct {
+	ID      int64   `db:"id" json:"id"`
+	UserID  int64   `db:"user_id" json:"-"`
+	Balance float64 `db:"balance" json:"balance"`
+	CreationDate string `db:"creation_date" json:"creation_date"`
+	LastUpdated string `db:"last_updated" json:"last_updated"`
+	Status string `db:"status" json:"status"`
+}
+
+type GetWalletResponse struct {
+	ID      int64   `db:"id" json:"id"`
+	Balance float64 `db:"balance" json:"balance"`
+	CreationDate string `db:"creation_date" json:"creation_date"`
+	LastUpdated string `db:"last_updated" json:"last_updated"`
+	Status string `db:"status" json:"status"`
+}
+
+type Message struct {
+	Message string `json:"message"`
+}
+
+type Credit struct {
+	Amount float64 `json:"amount"`
+}
