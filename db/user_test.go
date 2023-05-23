@@ -2,11 +2,13 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"nickPay/wallet/internal/domain"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/magiconair/properties/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	sqlxmock "github.com/zhashkevych/go-sqlxmock"
@@ -41,73 +43,56 @@ func (suite *StoreTestSuite) Test_pgStore_RegisterUser() {
 		user domain.User
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name             string
+		args             args
+		wantUserQueryErr bool
 	}{
 		{
 			name: "Register Valid User",
 			args: args{
 				ctx: context.Background(),
 				user: domain.User{
-					ID:          1,
 					Name:        "John Doe",
 					Email:       "john1@mail.com",
 					PhoneNumber: "8123467890",
 					Password:    "12345678",
 				},
 			},
-			wantErr: false,
+			wantUserQueryErr: false,
 		},
 		{
-			name: "Register User with Invalid Email",
+			name: "Register Invalid User",
 			args: args{
 				ctx: context.Background(),
 				user: domain.User{
-					ID:          2,
-					Name:        "John Dee",
-					Email:       "john2mail.com",
-					PhoneNumber: "8123467891",
-					Password:    "12345678",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "Register User with Invalid Phone Number",
-			args: args{
-				ctx: context.Background(),
-				user: domain.User{
-					ID:          3,
 					Name:        "John Doe",
-					Email:       "john1@maiil.com",
-					PhoneNumber: "812346789",
+					Email:       "john1@gmail.com",
+					PhoneNumber: "8123467890",
 					Password:    "12345678",
 				},
 			},
-			wantErr: true,
+			wantUserQueryErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var err error
-
-			if tt.wantErr {
+			if tt.wantUserQueryErr {
 				err = errors.New("mocked error")
 			} else {
 				err = nil
 			}
 
 			rows := sqlxmock.NewRows([]string{"id"}).AddRow(1)
-
-			suite.mock.ExpectQuery(`INSERT INTO "user"`).WithArgs(tt.args.user.Name, tt.args.user.Email, tt.args.user.PhoneNumber, tt.args.user.Password).WillReturnError(err).WillReturnRows(rows)
-
-			if err := suite.repo.RegisterUser(tt.args.ctx, tt.args.user); (err != nil) == tt.wantErr {
-				if tt.wantErr {
-					require.EqualError(t, err, "mocked error")
-				} else {
-					require.NoError(t, err)
-				}
+			suite.mock.ExpectQuery(`INSERT INTO "user"`).
+				WithArgs(tt.args.user.Name, tt.args.user.Email, tt.args.user.PhoneNumber, tt.args.user.Password).
+				WillReturnRows(rows).
+				WillReturnError(err)
+							
+			err = suite.repo.RegisterUser(tt.args.ctx, tt.args.user)
+			if tt.wantUserQueryErr {
+				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 			}
@@ -118,7 +103,7 @@ func (suite *StoreTestSuite) Test_pgStore_RegisterUser() {
 func (suite *StoreTestSuite) Test_pgStore_LoginUser() {
 	t := suite.T()
 	type args struct {
-		ctx  context.Context
+		ctx   context.Context
 		email string
 	}
 	tests := []struct {
@@ -130,22 +115,22 @@ func (suite *StoreTestSuite) Test_pgStore_LoginUser() {
 		{
 			name: "Login Valid User",
 			args: args{
-				ctx: context.Background(),
+				ctx:   context.Background(),
 				email: "john1@gmail.com",
 			},
 			want: domain.LoginDbResponse{
-				ID:          1,
-				Password:   "12345678",
+				ID:       1,
+				Password: "12345678",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Login Invalid User",
 			args: args{
-				ctx: context.Background(),
+				ctx:   context.Background(),
 				email: "john2@mail.com",
 			},
-			want: domain.LoginDbResponse{},
+			want:    domain.LoginDbResponse{},
 			wantErr: true,
 		},
 	}
@@ -164,7 +149,10 @@ func (suite *StoreTestSuite) Test_pgStore_LoginUser() {
 			suite.mock.ExpectQuery(`SELECT id, password FROM "user"`).WithArgs(tt.args.email).WillReturnError(err).WillReturnRows(rows)
 
 			got, err := suite.repo.LoginUser(tt.args.ctx, tt.args.email)
-			if (err != nil) == tt.wantErr {
+
+			if err == sql.ErrNoRows {
+				require.EqualError(t, err, "user not found")
+			} else if (err != nil) == tt.wantErr {
 				if tt.wantErr {
 					require.EqualError(t, err, "mocked error")
 				} else {
@@ -174,7 +162,8 @@ func (suite *StoreTestSuite) Test_pgStore_LoginUser() {
 				require.NoError(t, err)
 			}
 
-			require.Equal(t, tt.want, got)
+			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.wantErr, err != nil)
 		})
 	}
 }
