@@ -11,4 +11,6 @@ var (
 	ErrInvalidPhoneNumber = errors.New("invalid phone number")
 	ErrNoWallet = errors.New("no wallet found")
 	ErrFetchingWallet = errors.New("error fetching wallet")
+	ErrUpdatingWallet = errors.New("error updating wallet")
+	ErrRegisteringUser = errors.New("error registering user")
 )
