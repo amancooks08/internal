@@ -9,6 +9,7 @@ import (
 	"nickPay/wallet/internal/domain"
 	"nickPay/wallet/internal/service/mocks"
 	"nickPay/wallet/server"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,3 +96,63 @@ func (suite *WalletHandlerSuite) TestWallet_GetWallet() {
 		assert.Equal(t, string(exp), rw.Body.String())
 	})
 }
+
+func (suite *WalletHandlerSuite) TestWallet_CreditWallet() {
+	t := suite.T()
+	t.Run("Valid request to Credit Wallet", func(t *testing.T) {
+		// Arrange
+		req := httptest.NewRequest(http.MethodPost, "/user/wallet/credit", strings.NewReader(`{"amount": 1000}`))
+		rw := httptest.NewRecorder()
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, "id", 1)
+		req = req.WithContext(ctx)
+		expectedResponse := domain.Message{
+			Message: "Amount credited to the wallet successfully.",
+		}
+		exp, err := json.Marshal(expectedResponse)
+		if err != nil {
+			t.Errorf("Error while marshalling expected response: %v", err)
+		}
+
+		// Act
+		suite.service.On("CreditWallet", ctx, 1, 1000).Return(expectedResponse, nil).Once()
+		deps := server.Dependencies{
+			NikPay: suite.service,
+		}
+
+		// Assert
+		got := CreditWallet(deps.NikPay)
+		got.ServeHTTP(rw, req)
+		assert.Equal(t, http.StatusOK, rw.Code)
+		assert.Equal(t, string(exp), rw.Body.String())
+	})
+
+	t.Run("Invalid request to credit Wallet", func(t *testing.T) {
+		// Arrange
+		req := httptest.NewRequest(http.MethodPost, "/user/wallet/credit", strings.NewReader(`{"amount": -1000}`))
+		rw := httptest.NewRecorder()
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, "id", 1)
+		req = req.WithContext(ctx)
+		expectedResponse := domain.Message{
+			Message: "invalid request amount cannot be negative",
+		}
+		exp, err := json.Marshal(expectedResponse)
+		if err != nil {
+			t.Errorf("Error while marshalling expected response: %v", err)
+		}
+
+		// Act
+		suite.service.On("CreditWallet", ctx, 1, -1000).Return(domain.Wallet{}, errors.New("mocked error")).Once()
+		deps := server.Dependencies{
+			NikPay: suite.service,
+		}
+
+		// Assert
+		got := CreditWallet(deps.NikPay)
+		got.ServeHTTP(rw, req)
+		assert.Equal(t, http.StatusBadRequest, rw.Code)
+		assert.Equal(t, string(exp), rw.Body.String())
+	})
+}
+
