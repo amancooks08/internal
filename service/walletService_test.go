@@ -216,3 +216,56 @@ func (suite *ServiceTestSuite) TestWalletService_GetWallet() {
 		})
 	}
 }
+
+func (suite *ServiceTestSuite) TestWallet_CreditWallet() {
+	type args struct {
+		ctx    context.Context
+		amount float64
+		userID int
+	}
+
+	type test struct {
+		name    string
+		args    args
+		wantErr bool
+		prepare func(args, *mocks.Storer)
+	}
+
+	tests := []test{
+		{
+			name: "Valid Request to Credit Wallet",
+			args: args{
+				ctx:    context.WithValue(context.Background(), "id", 1),
+				amount: 1000,
+				userID: 1,
+			},
+			wantErr: false,
+			prepare: func(args args, s *mocks.Storer) {
+				s.On("CreditWallet", args.ctx, args.amount, args.userID).Return(nil).Once()
+			},
+		},
+		{
+			name: "Invalid Request to Credit Wallet",
+			args: args{
+				ctx:   context.WithValue(context.Background(), "id", 1),
+				amount: -1000,
+				userID: 1,
+			},
+			wantErr: true,
+			prepare: func(args args, s *mocks.Storer) {
+				s.On("CreditWallet", args.ctx, args.amount, args.userID).Return("mocked error").Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt.prepare(tt.args, suite.repository)
+		err := suite.service.CreditWallet(tt.args.ctx, tt.args.userID, tt.args.amount)
+		if tt.wantErr {
+			require.Error(suite.T(), err, "mocked error")
+		} else {
+			require.NoError(suite.T(), err)
+		}
+	}
+}
+

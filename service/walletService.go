@@ -16,6 +16,7 @@ type WalletService interface {
 	RegisterUser(context.Context, domain.User) error
 	LoginUser(context.Context, domain.LoginUserRequest) (string, error)
 	GetWallet(context.Context, int) (domain.Wallet, error)
+	CreditWallet(context.Context, int, float64) error
 }
 
 type walletService struct {
@@ -74,4 +75,14 @@ func (w *walletService) GetWallet(ctx context.Context, userID int) (wallet domai
 		return domain.Wallet{}, errors.New("error getting wallet for given userId")
 	}
 	return wallet, nil
+}
+
+
+func (w *walletService) CreditWallet(ctx context.Context, userID int, amount float64) (err error) {
+	err = w.store.CreditWallet(ctx, userID, amount)
+	if err != nil {
+		logger.WithField("err", err.Error()).Error("error adding money to wallet for given userID")
+		return errors.New("error adding money to wallet for given userID")
+	}
+	return nil
 }
