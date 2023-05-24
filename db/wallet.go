@@ -21,7 +21,7 @@ func (s *pgStore) CreateWallet(ctx context.Context, userID int64) (err error){
 }
 
 
-func (s *pgStore) GetWallet(ctx context.Context, userID int) (wallet domain.Wallet, err error) {
+func (s *pgStore) GetWallet(ctx context.Context, userID int64) (wallet domain.Wallet, err error) {
 	wallet = domain.Wallet{}
 	rows, err := s.db.Query("SELECT * FROM wallet where user_id = $1", &userID)
 	if err != nil && err == sql.ErrNoRows {
@@ -42,7 +42,7 @@ func (s *pgStore) GetWallet(ctx context.Context, userID int) (wallet domain.Wall
 	return
 }
 
-func (s *pgStore) CreditWallet(ctx context.Context, userID int, amount float64) (err error) {
+func (s *pgStore) CreditWallet(ctx context.Context, userID int64, amount float64) (err error) {
 	result, err := s.db.Exec(`UPDATE "wallet" SET balance = balance + $1, last_updated = $2 WHERE user_id = $3`, &amount, time.Now().Local().Format("2006-01-02 15:04:05"), &userID)
 	if err != nil {
 		logger.WithField("err", err.Error()).Error(errors.ErrUpdatingWallet.Error())
@@ -55,6 +55,25 @@ func (s *pgStore) CreditWallet(ctx context.Context, userID int, amount float64) 
 	}
 	if rowsAffected == 0 && rowsAffected != 1 {
 		logger.WithField("err", err.Error()).Error(errors.ErrUpdatingWallet.Error())
+		return errors.ErrUpdatingWallet
+	}
+	return
+}
+
+
+func (s *pgStore) DebitWallet(ctx context.Context, userID int64, amount float64) (err error) {
+	result, err := s.db.Exec(`UPDATE "wallet" SET balance = balance - $1, last_updated = $2 WHERE user_id = $3`, &amount, time.Now().Local().Format("2006-01-02 15:04:05"), &userID)
+	if err != nil {
+		logger.WithField("err", err.Error()).Error(err.Error())
+		return errors.ErrUpdatingWallet
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logger.WithField("err", err.Error()).Error(err.Error())
+		return errors.ErrUpdatingWallet
+	}
+	if rowsAffected == 0 && rowsAffected != 1 {
+		logger.WithField("err", err.Error()).Error(err.Error())
 		return errors.ErrUpdatingWallet
 	}
 	return
