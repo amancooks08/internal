@@ -57,3 +57,7 @@ type Message struct {
 type Credit struct {
 	Amount float64 `json:"amount"`
 }
+
+type Debit struct {
+	Amount float64 `json:"amount"`
+}
