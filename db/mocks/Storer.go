@@ -30,11 +30,25 @@ func (_m *Storer) CreateWallet(_a0 context.Context, _a1 int64) error {
 }
 
 // CreditWallet provides a mock function with given fields: _a0, _a1, _a2
-func (_m *Storer) CreditWallet(_a0 context.Context, _a1 int, _a2 float64) error {
+func (_m *Storer) CreditWallet(_a0 context.Context, _a1 int64, _a2 float64) error {
 	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, int, float64) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int64, float64) error); ok {
+		r0 = rf(_a0, _a1, _a2)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DebitWallet provides a mock function with given fields: _a0, _a1, _a2
+func (_m *Storer) DebitWallet(_a0 context.Context, _a1 int64, _a2 float64) error {
+	ret := _m.Called(_a0, _a1, _a2)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64, float64) error); ok {
 		r0 = rf(_a0, _a1, _a2)
 	} else {
 		r0 = ret.Error(0)
@@ -44,21 +58,21 @@ func (_m *Storer) CreditWallet(_a0 context.Context, _a1 int, _a2 float64) error 
 }
 
 // GetWallet provides a mock function with given fields: _a0, _a1
-func (_m *Storer) GetWallet(_a0 context.Context, _a1 int) (domain.Wallet, error) {
+func (_m *Storer) GetWallet(_a0 context.Context, _a1 int64) (domain.Wallet, error) {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 domain.Wallet
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, int) (domain.Wallet, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int64) (domain.Wallet, error)); ok {
 		return rf(_a0, _a1)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, int) domain.Wallet); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int64) domain.Wallet); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		r0 = ret.Get(0).(domain.Wallet)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, int64) error); ok {
 		r1 = rf(_a0, _a1)
 	} else {
 		r1 = ret.Error(1)
