@@ -2,11 +2,9 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"nickPay/wallet/internal/db"
 	"nickPay/wallet/internal/domain"
-	errorrs "nickPay/wallet/internal/errors"
+	errors "nickPay/wallet/internal/errors"
 
 	logger "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -15,8 +13,9 @@ import (
 type WalletService interface {
 	RegisterUser(context.Context, domain.User) error
 	LoginUser(context.Context, domain.LoginUserRequest) (string, error)
-	GetWallet(context.Context, int) (domain.Wallet, error)
-	CreditWallet(context.Context, int, float64) error
+	GetWallet(context.Context, int64) (domain.Wallet, error)
+	CreditWallet(context.Context, int64, float64) error
+	DebitWallet(context.Context, int64, float64) error
 }
 
 type walletService struct {
@@ -50,7 +49,7 @@ func (w *walletService) RegisterUser(ctx context.Context, user domain.User) (err
 func (w *walletService) LoginUser(ctx context.Context, loginRequest domain.LoginUserRequest) (token string, err error) {
 	loginResponse, err := w.store.LoginUser(ctx, loginRequest.Email)
 	if bcrypt.CompareHashAndPassword([]byte(loginResponse.Password), []byte(loginRequest.Password)) != nil {
-		return "", errorrs.ErrInvalidPassword
+		return "", errors.ErrInvalidPassword
 	}
 
 	if err != nil {
@@ -59,30 +58,44 @@ func (w *walletService) LoginUser(ctx context.Context, loginRequest domain.Login
 	}
 	token, err = GenerateToken(loginResponse)
 	if err != nil {
-		logger.WithField("err", err.Error()).Error("error generating jwt token for given userId")
-		return "", errors.New("error generating jwt token for given userId")
+		logger.WithField("err", err.Error()).Error(errors.ErrGenJWTToken.Error())
+		return "", errors.ErrGenJWTToken
 	}
 	return token, nil
 }
 
-func (w *walletService) GetWallet(ctx context.Context, userID int) (wallet domain.Wallet, err error) {
+func (w *walletService) GetWallet(ctx context.Context, userID int64) (wallet domain.Wallet, err error) {
 	wallet, err = w.store.GetWallet(ctx, userID)
-	defer (func() {
-		fmt.Println("defer")
-	})()
 	if err != nil {
-		logger.WithField("err", err.Error()).Error("error getting wallet for given userId")
-		return domain.Wallet{}, errors.New("error getting wallet for given userId")
+		logger.WithField("err", err.Error()).Error(errors.ErrFetchingWallet.Error())
+		return domain.Wallet{}, errors.ErrFetchingWallet
 	}
 	return wallet, nil
 }
 
-
-func (w *walletService) CreditWallet(ctx context.Context, userID int, amount float64) (err error) {
+func (w *walletService) CreditWallet(ctx context.Context, userID int64, amount float64) (err error) {
 	err = w.store.CreditWallet(ctx, userID, amount)
 	if err != nil {
-		logger.WithField("err", err.Error()).Error("error adding money to wallet for given userID")
-		return errors.New("error adding money to wallet for given userID")
+		logger.WithField("err", err.Error()).Error(errors.ErrCreditingWallet.Error())
+		return errors.ErrCreditingWallet
+	}
+	return nil
+}
+
+func (w *walletService) DebitWallet(ctx context.Context, userID int64, amount float64) (err error) {
+	wallet, err := w.store.GetWallet(ctx, userID)
+	if err != nil {
+		logger.WithField("err", err.Error()).Error(errors.ErrFetchingBalance.Error())
+		return errors.ErrFetchingBalance
+	}
+	if wallet.Balance < amount {
+		logger.WithField("err", err.Error()).Error(errors.ErrInsufficientBalance.Error())
+		return errors.ErrInsufficientBalance
+	}
+	err = w.store.DebitWallet(ctx, userID, amount)
+	if err != nil {
+		logger.WithField("err", err.Error()).Error(errors.ErrDebitingWallet.Error())
+		return errors.ErrDebitingWallet
 	}
 	return nil
 }

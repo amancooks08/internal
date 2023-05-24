@@ -170,7 +170,7 @@ func (suite *ServiceTestSuite) TestWalletService_GetWallet() {
 	t := suite.T()
 	type args struct {
 		ctx    context.Context
-		userID int
+		userID int64
 	}
 	type test struct {
 		name    string
@@ -221,7 +221,7 @@ func (suite *ServiceTestSuite) TestWallet_CreditWallet() {
 	type args struct {
 		ctx    context.Context
 		amount float64
-		userID int
+		userID int64
 	}
 
 	type test struct {
@@ -269,3 +269,73 @@ func (suite *ServiceTestSuite) TestWallet_CreditWallet() {
 	}
 }
 
+func (suite *ServiceTestSuite) TestWallet_DebitWallet() {
+	type args struct {
+		ctx    context.Context
+		amount float64
+		userID int64
+	}
+
+	type test struct {
+		name    string
+		args    args
+		wantErr bool
+		prepare func(args, *mocks.Storer)
+	}
+
+	tests := []test{
+		{
+			name: "Valid Request to Debit Wallet",
+			args: args{
+				ctx:    context.WithValue(context.Background(), "id", 1),
+				amount: 1000,
+				userID: 1,
+			},
+			wantErr: false,
+			prepare: func(args args, s *mocks.Storer) {
+				s.On("DebitWallet", args.ctx, args.amount, args.userID).Return(nil).Once()
+			},
+		},
+		{
+			name: "Invalid Request to Debit Wallet",
+			args: args{
+				ctx:    context.WithValue(context.Background(), "id", 1),
+				amount: -1000,
+				userID: 1,
+			},
+			wantErr: true,
+			prepare: func(args args, s *mocks.Storer) {
+				s.On("DebitWallet", args.ctx, args.amount, args.userID).Return("mocked error").Once()
+			},
+		},
+		{
+			name: "Insufficient balance in wallet",
+			args: args{
+				ctx:    context.WithValue(context.Background(), "id", 1),
+				amount: 1000,
+				userID: 1,
+			},
+			wantErr: true,
+			prepare: func(args args, s *mocks.Storer) {
+				s.On("DebitWallet", args.ctx, args.amount, args.userID).Return("mocked error").Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt.prepare(tt.args, suite.repository)
+		wallet, err := suite.service.GetWallet(tt.args.ctx, tt.args.userID)
+		if err != nil {
+			require.Error(suite.T(), err, "mocked error")
+		}
+		if wallet.Balance < tt.args.amount {
+			require.Error(suite.T(), err, "mocked error")
+		}
+		err = suite.service.DebitWallet(tt.args.ctx, tt.args.userID, tt.args.amount)
+		if tt.wantErr {
+			require.Error(suite.T(), err, "mocked error")
+		} else {
+			require.NoError(suite.T(), err)
+		}
+	}
+}
