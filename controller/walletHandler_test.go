@@ -156,3 +156,90 @@ func (suite *WalletHandlerSuite) TestWallet_CreditWallet() {
 	})
 }
 
+
+func (suite *WalletHandlerSuite) TestWallet_DebitWallet(){
+	t := suite.T()
+	t.Run("Valid request to Debit Wallet", func(t *testing.T) {
+		// Arrange
+		req := httptest.NewRequest(http.MethodPost, "/user/wallet/debit", strings.NewReader(`{"amount": 1000}`))
+		rw := httptest.NewRecorder()
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, "id", 1)
+		req = req.WithContext(ctx)
+		expectedResponse := domain.Message{
+			Message: "Amount debited from the wallet successfully.",
+		}
+		exp, err := json.Marshal(expectedResponse)
+		if err != nil {
+			t.Errorf("Error while marshalling expected response: %v", err)
+		}
+
+		// Act
+		suite.service.On("DebitWallet", ctx, 1, 1000).Return(expectedResponse, nil).Once()
+		deps := server.Dependencies{
+			NikPay: suite.service,
+		}
+
+		// Assert
+		got := DebitWallet(deps.NikPay)
+		got.ServeHTTP(rw, req)
+		assert.Equal(t, http.StatusOK, rw.Code)
+		assert.Equal(t, string(exp), rw.Body.String())
+	})
+
+	t.Run("Invalid request to debit Wallet", func(t *testing.T) {
+		// Arrange
+		req := httptest.NewRequest(http.MethodPost, "/user/wallet/debit", strings.NewReader(`{"amount": -1000}`))
+		rw := httptest.NewRecorder()
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, "id", 1)
+		req = req.WithContext(ctx)
+		expectedResponse := domain.Message{
+			Message: "invalid request amount cannot be negative",
+		}
+		exp, err := json.Marshal(expectedResponse)
+		if err != nil {
+			t.Errorf("Error while marshalling expected response: %v", err)
+		}
+
+		// Act
+		suite.service.On("DebitWallet", ctx, 1, -1000).Return(domain.Wallet{}, errors.New("mocked error")).Once()
+		deps := server.Dependencies{
+			NikPay: suite.service,
+		}
+
+		// Assert
+		got := DebitWallet(deps.NikPay)
+		got.ServeHTTP(rw, req)
+		assert.Equal(t, http.StatusBadRequest, rw.Code)
+		assert.Equal(t, string(exp), rw.Body.String())
+	})
+
+	t.Run("Insufficient balance in wallet", func(t *testing.T) {
+		// Arrange
+		req := httptest.NewRequest(http.MethodPost, "/user/wallet/debit", strings.NewReader(`{"amount": 1000}`))
+		rw := httptest.NewRecorder()
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, "id", 1)
+		req = req.WithContext(ctx)
+		expectedResponse := domain.Message{
+			Message: "insufficient balance in wallet",
+		}
+		exp, err := json.Marshal(expectedResponse)
+		if err != nil {
+			t.Errorf("Error while marshalling expected response: %v", err)
+		}
+
+		// Act
+		suite.service.On("DebitWallet", ctx, 1, 1000).Return(domain.Message{}, errors.New("insufficient balance in wallet")).Once()
+		deps := server.Dependencies{
+			NikPay: suite.service,
+		}
+
+		// Assert
+		got := DebitWallet(deps.NikPay)
+		got.ServeHTTP(rw, req)
+		assert.Equal(t, http.StatusBadRequest, rw.Code)
+		assert.Equal(t, string(exp), rw.Body.String())
+	})
+}
