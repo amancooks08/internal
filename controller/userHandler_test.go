@@ -37,6 +37,7 @@ func (suite *UserHandlerTestSuite) TestRegisterUserHandler() {
 	t := suite.T()
 	t.Run("Register Valid User", func(t *testing.T) {
 		// Arrange
+		// TODO try to implement nested JSON
 		reqBody := `{"name": "John Doe", "email": "john.doe@gmail.com", "phone_number": "9993679833", "password": "12345678"}`
 		req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(reqBody))
 		res := httptest.NewRecorder()
@@ -57,7 +58,6 @@ func (suite *UserHandlerTestSuite) TestRegisterUserHandler() {
 		}
 
 		// Act
-		// err = suite.service.RegisterUser(req.Context(), user
 		suite.service.On("RegisterUser", req.Context(), user).Return(nil).Once()
 		deps := server.Dependencies{
 			NikPay: suite.service,
@@ -68,13 +68,14 @@ func (suite *UserHandlerTestSuite) TestRegisterUserHandler() {
 		assert.Equal(t, http.StatusCreated, res.Code)
 		assert.Equal(t, string(exp), res.Body.String())
 	})
-
-	t.Run("Register User with Invalid Email", func(t *testing.T) {
+	t.Run("expect error 400 when user had invalid Email", func(t *testing.T) {
 		// Arrange
 		reqBody := `{"name": "John Doe", "email": "john1mail.com", "phone_number": "8123467890", "password": "12345678"}`
 		req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewBufferString(reqBody))
 		res := httptest.NewRecorder()
 
+		// TODO - make error object - a more client-centric, enhancing readabililty
+		
 		expectedResponse := domain.RegisterUserResponse{
 			Message: "invalid email",
 		}
